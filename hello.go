@@ -1,22 +1,19 @@
 package main
 
 import (
+	"errors"
 	"context"
 	"encoding/json"
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
-
+	// glog "github.com/golang/glog"
 	fdk "github.com/fnproject/fdk-go"
 )
-
-// Token represnts AUTH token and/or error.
-type Token struct {
-	Token, Error string
-}
 
 // Input represents the required headers and content.
 type Input struct {
@@ -28,52 +25,68 @@ func getToken(input *Input) (string, error) {
 	req, err := http.NewRequest("GET", "https://gse00013735.storage.oraclecloud.com/auth/v1.0", nil)
 	if err != nil {
 		log.Fatal(err)
+		return "", err
 	}
 	req.Header.Add("X-Storage-User", input.XStorageUser)
 	req.Header.Add("X-Storage-Pass", input.XStoragePass)
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Fatal(err)
+		return "", err
 	}
-
-	return resp.Header.Get("X-Auth-Token"), nil
+	
+	if resp.StatusCode != 200 {
+		err = errors.New(resp.Status)
+		return "", err
+	} 
+	return resp.Header.Get("X-Auth-Token"), err
 }
 
-func putObject(o string, t *Token) (*http.Response, error) {
+func putObject(content string, token string) (*http.Response, string) {
 	client := &http.Client{}
 	now := strconv.FormatInt(time.Now().UnixNano(), 10)
 	url := "https://gse00013735.storage.oraclecloud.com/v1/Storage-gse00013735/fn_container/log" + now + ".json"
 	log.Printf("Url %s\n", url)
-	req, err := http.NewRequest("PUT", url, strings.NewReader(o))
+	req, err := http.NewRequest("PUT", url, strings.NewReader(content))
 	if err != nil {
 		log.Fatal(err)
 	}
-	req.Header.Add("X-Auth-Token", t.Token)
+	req.Header.Add("X-Auth-Token", token)
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Fatal(err)
 	}
-	return resp, err
+	return resp, url
 }
 
-// func getObject(name string, t *Token) {
-// 	client := &http.Client{}
-// 	req, err := http.NewRequest("GET", "https://gse00013735.storage.oraclecloud.com/auth/v1.0", nil)
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
-// 	req.Header.Add("X-Storage-User", input.XStorageUser)
-// 	req.Header.Add("X-Storage-Pass", input.XStoragePass)
-// 	resp, err := client.Do(req)
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
+func getObject(url string, token string) (*http.Response, error) {
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		log.Fatal(err)
+		return nil, err
+	}
+	req.Header.Add("X-Auth-Token", token)
+	resp, err := client.Do(req)
 
-// 	return resp.Header.Get("X-Auth-Token"), nil
-// }
+	if err != nil {
+		log.Fatal(err)
+	} else {
+		defer resp.Body.Close()
+		out, err := os.Create("output.json")
+		if err != nil {
+			log.Fatal(err)
+		} else {
+			defer out.Close()
+			n, err := io.Copy(out, resp.Body)
+			if err != nil {
+				log.Fatal(err)
+			}
+			log.Printf("Lenght: %d", n)
+		}
+	}
 
-func main() {
-	fdk.Handle(fdk.HandlerFunc(myHandler))
+	return resp, err
 }
 
 func myHandler(ctx context.Context, in io.Reader, out io.Writer) {
@@ -82,13 +95,16 @@ func myHandler(ctx context.Context, in io.Reader, out io.Writer) {
 	log.Printf("%s, %s, %s\n", input.XStorageUser, input.XStoragePass, input.Content)
 	token, err := getToken(input)
 	log.Printf("Token: %s\n", token)
-	t := &Token{Token: token, Error: ""}
 	if err != nil {
-		t.Error = err.Error()
-		json.NewEncoder(out).Encode(t)
+		json.NewEncoder(out).Encode(err.Error())
 		log.Fatal(err)
+	} else {
+		resp, url := putObject(input.Content, token)
+		log.Printf("Status: %d, URL: %s", resp.StatusCode, url)
+		json.NewEncoder(out).Encode(url)
 	}
+}
 
-	resp, err := putObject(input.Content, t)
-	log.Printf("%s %s", resp, err)
+func main() {
+	fdk.Handle(fdk.HandlerFunc(myHandler))
 }
