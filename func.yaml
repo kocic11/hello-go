@@ -1,0 +1,7 @@
+name: hello-go
+version: 0.0.8
+runtime: go
+entrypoint: ./func
+type: async
+format: json
+idle_timeout: 10
