@@ -1,12 +1,12 @@
-package main	
+package main
 
 import (
-	"strings"
 	"bytes"
 	"context"
 	"io"
 	"net/http"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -31,7 +31,7 @@ func Test_getToken(t *testing.T) {
 			want:    "200 OK",
 			wantErr: false,
 		},
-		{	
+		{
 			name: "Test2",
 			args: args{
 				input: &Input{
@@ -72,7 +72,7 @@ func Test_putObject(t *testing.T) {
 			name: "Test1",
 			args: args{
 				content: "{\"name\":\"Test123\"}",
-				token: "AUTH_tk98be995c2ce3eba6189ffa828be0bfb8",
+				token:   "AUTH_tk98be995c2ce3eba6189ffa828be0bfb8",
 			},
 		},
 	}
@@ -103,13 +103,12 @@ func Test_getObject(t *testing.T) {
 		{
 			name: "getObject_Test1",
 			args: args{
-				url: "https://gse00013735.storage.oraclecloud.com/v1/Storage-gse00013735/fn_container/log1522341159078238800.json",
+				url:   "https://gse00013735.storage.oraclecloud.com/v1/Storage-gse00013735/fn_container/log1522341159078238800.json",
 				token: "AUTH_tkbab23e5e15dc1fefd4be57def2bfe076",
 			},
-			want: &http.Response{},
+			want:    &http.Response{},
 			wantErr: false,
 		},
-		
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -143,7 +142,38 @@ func Test_myHandler(t *testing.T) {
 					{
 						"XStorageUser":"Storage-gse00013735:cloud.admin",
 						"XStoragePass":"ImmaNeNt@0SumP",
-						"Content":"{\"name\":\"Test123\"}"
+						"Content":{"name":"Test123"}
+					}
+				`),
+			},
+			wantOut: "",
+		},
+		{
+			name: "myHandler_test2",
+			args: args{
+				ctx: nil,
+				in: strings.NewReader(`
+					{
+						"XStorageUser": "Storage-gse00013735:cloud.admin",
+						"XStoragePass": "ImmaNeNt@0SumP",
+						"Content": 
+							{
+								"Exception": {
+									"ApplicationID": "str1234",
+									"ExceptionMessage": "str1234",
+									"ExceptionNumber": "str1234",
+									"ExceptionSeverity": "str1234",
+									"ExceptionType": "str1234",
+									"ServiceName": "str1234",
+									"ServiceOperationName": "str1234",
+									"ExceptionContextList": {
+										"ExceptionContext": {
+											"Key": "str1234",
+											"Value": "str1234"
+										}
+									}
+								}
+							}
 					}
 				`),
 			},

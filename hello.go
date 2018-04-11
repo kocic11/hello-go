@@ -1,15 +1,15 @@
 package main
 
 import (
-	"errors"
+	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"log"
 	"net/http"
 	"os"
 	"strconv"
-	"strings"
 	"time"
 	// glog "github.com/golang/glog"
 	fdk "github.com/fnproject/fdk-go"
@@ -17,7 +17,8 @@ import (
 
 // Input represents the required headers and content.
 type Input struct {
-	XStorageUser, XStoragePass, Content string
+	XStorageUser, XStoragePass string
+	Content                    interface{}
 }
 
 func getToken(input *Input) (string, error) {
@@ -34,23 +35,31 @@ func getToken(input *Input) (string, error) {
 		log.Fatal(err)
 		return "", err
 	}
-	
+
 	if resp.StatusCode != 200 {
 		err = errors.New(resp.Status)
 		return "", err
-	} 
+	}
 	return resp.Header.Get("X-Auth-Token"), err
 }
 
-func putObject(content string, token string) (*http.Response, string) {
+func putObject(content interface{}, token string) (*http.Response, string) {
 	client := &http.Client{}
 	now := strconv.FormatInt(time.Now().UnixNano(), 10)
 	url := "https://gse00013735.storage.oraclecloud.com/v1/Storage-gse00013735/fn_container/log" + now + ".json"
 	log.Printf("Url %s\n", url)
-	req, err := http.NewRequest("PUT", url, strings.NewReader(content))
+
+	b, err := json.Marshal(content)
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	r := bytes.NewReader(b)
+	req, err := http.NewRequest("PUT", url, r)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	req.Header.Add("X-Auth-Token", token)
 	resp, err := client.Do(req)
 	if err != nil {
