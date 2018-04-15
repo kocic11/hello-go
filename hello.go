@@ -101,9 +101,9 @@ func getObject(url string, token string) (*http.Response, error) {
 func myHandler(ctx context.Context, in io.Reader, out io.Writer) {
 	input := &Input{}
 	json.NewDecoder(in).Decode(input)
-	log.Printf("%s, %s, %s\n", input.XStorageUser, input.XStoragePass, input.Content)
+	log.Printf("%s, %s, %s", input.XStorageUser, input.XStoragePass, input.Content)
 	token, err := getToken(input)
-	log.Printf("Token: %s\n", token)
+	log.Printf("Token: %s", token)
 	if err != nil {
 		json.NewEncoder(out).Encode(err.Error())
 		log.Fatal(err)

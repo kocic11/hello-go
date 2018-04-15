@@ -97,16 +97,16 @@ func Test_getObject(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		want    *http.Response
+		want    int
 		wantErr bool
 	}{
 		{
 			name: "getObject_Test1",
 			args: args{
-				url:   "https://gse00013735.storage.oraclecloud.com/v1/Storage-gse00013735/fn_container/log1522341159078238800.json",
-				token: "AUTH_tkbab23e5e15dc1fefd4be57def2bfe076",
+				url:   "https://gse00013735.storage.oraclecloud.com/v1/Storage-gse00013735/fn_container/log1523828211674353981.json",
+				token: "AUTH_tkc645b4b9823ded2f30750b606d3454c2",
 			},
-			want:    &http.Response{},
+			want:    200,
 			wantErr: false,
 		},
 	}
@@ -117,8 +117,8 @@ func Test_getObject(t *testing.T) {
 				t.Errorf("getObject() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("getObject() = %v, want %v", got, tt.want)
+			if !reflect.DeepEqual(got.StatusCode, tt.want) {
+				t.Errorf("getObject() = %v, want %v", got.StatusCode, tt.want)
 			}
 		})
 	}
